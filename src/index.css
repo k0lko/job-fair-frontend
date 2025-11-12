@@ -1,0 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* stylelint-disable */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+html, body {
+  @apply font-sans text-gray-900 bg-gray-50;
+}
