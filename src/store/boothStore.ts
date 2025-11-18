@@ -1,8 +1,6 @@
-import { create } from 'zustand';
-import type { Booth, Service, Reservation } from '../types';
-
-// API base URL
-const API_BASE_URL = 'http://localhost:8080/api';
+import { create } from "zustand";
+import type { Booth, Service, Reservation } from "../types";
+import { api } from "../services/api";
 
 interface BoothStore {
   booths: Booth[];
@@ -12,13 +10,15 @@ interface BoothStore {
   isModalOpen: boolean;
   isLoading: boolean;
   error: string | null;
-  
-  // Actions
+
   fetchBooths: () => Promise<void>;
   fetchServices: () => Promise<void>;
   setSelectedBooth: (booth: Booth | null) => void;
   setModalOpen: (open: boolean) => void;
-  reserveBooth: (boothId: string, reservationData: Omit<Reservation, 'id' | 'createdAt' | 'boothId'>) => Promise<void>;
+  reserveBooth: (
+    boothId: string,
+    reservationData: Omit<Reservation, "id" | "createdAt" | "boothId">
+  ) => Promise<void>;
   getBoothById: (id: string) => Booth | undefined;
   getReservationByBoothId: (boothId: string) => Reservation | undefined;
   setLoading: (loading: boolean) => void;
@@ -36,15 +36,11 @@ export const useBoothStore = create<BoothStore>((set, get) => ({
 
   fetchBooths: async () => {
     set({ isLoading: true, error: null });
+
     try {
-      const response = await fetch(`${API_BASE_URL}/booths`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      
-      // Transform backend data to frontend format
-      const transformedBooths: Booth[] = data.map((booth: any) => ({
+      const res = await api.get("/booths");
+
+      const transformed = res.data.map((booth: any) => ({
         id: booth.id.toString(),
         number: booth.boothNumber,
         x: booth.x,
@@ -52,103 +48,74 @@ export const useBoothStore = create<BoothStore>((set, get) => ({
         width: booth.width,
         height: booth.height,
         price: booth.price,
-        size: booth.size === '2x1' ? '2x1' : '1x1',
-        status: booth.status.toLowerCase() as Booth['status'],
+        size: booth.size === "2x1" ? "2x1" : "1x1",
+        status: booth.status.toLowerCase(),
         company: booth.company || undefined,
       }));
-      
-      set({ booths: transformedBooths, isLoading: false });
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to fetch booths', isLoading: false });
+
+      set({ booths: transformed, isLoading: false });
+
+    } catch (err: any) {
+      console.error("Błąd pobierania booths:", err);
+      set({ error: err?.message, isLoading: false });
     }
   },
 
   fetchServices: async () => {
     set({ isLoading: true, error: null });
+
     try {
-      const response = await fetch(`${API_BASE_URL}/services`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const res = await api.get("/services");
 
-      const data = await response.json();
-      console.log("Usługi pobrane z backendu:", data);
+      const transformed = res.data.map((s: any) => ({
+        id: s.serviceCode,
+        name: s.name,
+        description: s.description,
+        price: s.price,
+        vat: s.vat,
+      }));
 
-      // Obsługa obu przypadków — z `id` lub z `serviceCode`
-      const transformedServices: Service[] = data.map((service: any) => ({
-      id: service.serviceCode, // <-- klucz z backendu
-      name: service.name,
-      description: service.description,
-      price: service.price,
-      vat: service.vat,
-    }));
+      set({ services: transformed, isLoading: false });
 
-
-      set({ services: transformedServices, isLoading: false });
-    } catch (error) {
-      console.error('Błąd podczas pobierania usług:', error);
-      set({
-        error: error instanceof Error ? error.message : 'Failed to fetch services',
-        isLoading: false,
-      });
+    } catch (err: any) {
+      console.error("Błąd pobierania services:", err);
+      set({ error: err?.message, isLoading: false });
     }
   },
 
   setSelectedBooth: (booth) => set({ selectedBooth: booth }),
-
   setModalOpen: (open) => set({ isModalOpen: open }),
 
   reserveBooth: async (boothId, reservationData) => {
     set({ isLoading: true, error: null });
+
     try {
-      const response = await fetch(`${API_BASE_URL}/reservations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          boothId: parseInt(boothId),
-          companyName: reservationData.companyName,
-          industry: reservationData.industry,
-          website: reservationData.website,
-          contactName: reservationData.contactName,
-          contactEmail: reservationData.contactEmail,
-          contactPhone: reservationData.contactPhone,
-          invoiceAddress: reservationData.invoiceAddress,
-          services: reservationData.services,
-          agreedToTerms: reservationData.agreedToTerms,
-          agreedToParticipation: reservationData.agreedToParticipation,
-          agreedToConditions: reservationData.agreedToConditions,
-        }),
+      const res = await api.post("/reservations", {
+        boothId: parseInt(boothId),
+        ...reservationData,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to create reservation');
-      }
-
-      const newReservation = await response.json();
-      
       set((state) => ({
-        reservations: [...state.reservations, newReservation],
-        booths: state.booths.map(booth =>
-          booth.id === boothId
-            ? { ...booth, status: 'reserved', company: reservationData.companyName }
-            : booth
+        reservations: [...state.reservations, res.data],
+        booths: state.booths.map((b) =>
+          b.id === boothId
+            ? { ...b, status: "reserved", company: reservationData.companyName }
+            : b
         ),
         isLoading: false,
       }));
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to create reservation', isLoading: false });
-      throw error;
+
+    } catch (err: any) {
+      console.error("Błąd rezerwacji:", err);
+      set({ error: err?.message, isLoading: false });
+      throw err;
     }
   },
 
-  getBoothById: (id) => get().booths.find(booth => booth.id === id),
-
-  getReservationByBoothId: (boothId) => get().reservations.find(reservation => reservation.boothId === boothId),
+  getBoothById: (id) => get().booths.find((b) => b.id === id),
+  getReservationByBoothId: (boothId) =>
+    get().reservations.find((r) => r.boothId === boothId),
 
   setLoading: (loading) => set({ isLoading: loading }),
-
   setError: (error) => set({ error }),
 }));

@@ -1,25 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useBoothStore } from '../store/boothStore';
 import FrontPagePhoto from '../assets/FrontPagePhoto.jpeg';
+import { Link } from "react-router-dom";
+import { LogosCarousel } from "../components/LogosCarousel";
 
 export const HomePage: React.FC = () => {
-  const { fetchBooths, fetchServices, isLoading, error } = useBoothStore();
-
-  useEffect(() => {
-    fetchBooths();
-    fetchServices();
-  }, [fetchBooths, fetchServices]);
-
-  const handleLogin = () => {
-    const user = {
-      id: '1',
-      email: 'firma@przyklad.pl',
-      name: 'Przykładowa Firma',
-      isLoggedIn: true,
-    };
-    localStorage.setItem('user', JSON.stringify(user));
-    window.location.reload();
-  };
+  const { isLoading, error } = useBoothStore();
 
   if (error) {
     return (
@@ -64,41 +50,31 @@ export const HomePage: React.FC = () => {
             Politechnika Bydgoska zaprasza firmy do udziału w największych targach pracy w regionie. 
             Zarezerwuj swoje stoisko już dziś i połącz się z najlepszymi kandydatami!
           </p>
-          <button
-            onClick={handleLogin}
+          <Link
+            to="/login"
             className="bg-[#830e21] text-white px-6 sm:px-8 py-3 rounded-lg hover:bg-red-800 transition shadow-md text-sm sm:text-base"
           >
             Zaloguj się i zarezerwuj stoisko
-          </button>
-        </div>
+          </Link>
+        </div>  
 
-        <div className="flex-1 w-full">
+        <div className="flex-1 w-full flex justify-center">
           <img
             src={FrontPagePhoto}
             alt="Targi Pracy Politechniki Bydgoskiej"
-            className="rounded-xl shadow-lg w-full object-cover"
+            className="rounded-xl shadow-lg w-full max-w-[550px] object-cover"
           />
         </div>
       </section>
 
-      {/* Info Cards */}
-      <section className="container mx-auto px-4 py-10 sm:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-        {[
-          { title: "Stoiska Typ A", size: "1x1 metr", price: "1300 zł + 23% VAT" },
-          { title: "Stoiska Typ B", size: "2x1 metry", price: "1600 zł + 23% VAT" },
-          { title: "Pakiety Sponsorskie", size: "Pełny pakiet sponsorski", price: "5000 zł + 23% VAT" },
-        ].map(({ title, size, price }) => (
-          <div
-            key={title}
-            className="bg-white rounded-lg shadow-md sm:shadow-lg p-6 border-t-4 border-[#830e21] text-center sm:text-left"
-          >
-            <h4 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4">{title}</h4>
-            <p className="text-gray-700 mb-1 sm:mb-2">{size}</p>
-            <p className="text-xl sm:text-2xl font-bold text-[#830e21]">{price}</p>
-          </div>
-        ))}
-      </section>
+      {/* LOGO CAROUSEL */}
+      <section className="mt-20">
+        <h3 className="text-center text-xl sm:text-2xl font-bold text-[#830e21] mb-6">
+          Firmy, które były z nami w poprzednich edycjach
+        </h3>
 
+        <LogosCarousel />
+      </section>
       {/* Footer */}
       <footer className="bg-[#830e21] text-white py-10 mt-auto">
         <div className="container mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 text-center sm:text-left">

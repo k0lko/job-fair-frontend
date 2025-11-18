@@ -3,6 +3,7 @@ import { useBoothStore } from '../store/boothStore';
 import type { ReservationFormData } from '../types';
 import { ReservationModal } from './ReservationModal';
 import { InteractiveMap } from './InteractiveMap';
+import { getUserEmailFromToken, getToken, logout } from "../services/auth";
 
 export const ReservationPanel: React.FC = () => {
   const {
@@ -20,24 +21,22 @@ export const ReservationPanel: React.FC = () => {
     error,
   } = useBoothStore();
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ email: string | null } | null>(null);
   const [activeTab, setActiveTab] = useState<'map' | 'reservations'>('map');
 
+  // ProtectedRoute gwarantuje, że token istnieje
+  // więc tutaj już tylko pobieramy email i dane z backendu
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    } else {
-      window.location.href = '/';
-    }
+    const email = getUserEmailFromToken();
+    setUser({ email });
 
     fetchBooths();
     fetchServices();
   }, [fetchBooths, fetchServices]);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    window.location.href = '/';
+    logout();
+    window.location.href = "/login";
   };
 
   const handleBoothClick = (booth: any) => {
@@ -46,35 +45,35 @@ export const ReservationPanel: React.FC = () => {
   };
 
   const handleReservationSubmit = async (data: ReservationFormData) => {
-    if (selectedBooth) {
-      try {
-        const selectedServices = services.filter((s) =>
-          data.services.includes(s.id)
-        );
-        const totalAmount =
-          selectedBooth.price +
-          selectedServices.reduce((sum, s) => sum + s.price, 0);
+    if (!selectedBooth) return;
 
-        // 🔹 Dopasowanie do nowego modelu adresu (street, postalCode, city, country)
-        const safeData = {
-          ...data,
-          totalAmount,
-          invoiceAddress: {
-            companyName: data.invoiceAddress.companyName || '',
-            street: data.invoiceAddress.street || '',
-            postalCode: data.invoiceAddress.postalCode || '',
-            city: data.invoiceAddress.city || '',
-            country: data.invoiceAddress.country || '',
-            nip: data.invoiceAddress.nip || '',
-          },
-        };
+    try {
+      const selectedServices = services.filter((s) =>
+        data.services.includes(s.id)
+      );
 
-        await reserveBooth(selectedBooth.id, safeData);
-        setModalOpen(false);
-        setSelectedBooth(null);
-      } catch (error) {
-        console.error('Reservation failed:', error);
-      }
+      const totalAmount =
+        selectedBooth.price +
+        selectedServices.reduce((sum, s) => sum + s.price, 0);
+
+      const safeData = {
+        ...data,
+        totalAmount,
+        invoiceAddress: {
+          companyName: data.invoiceAddress.companyName || '',
+          street: data.invoiceAddress.street || '',
+          postalCode: data.invoiceAddress.postalCode || '',
+          city: data.invoiceAddress.city || '',
+          country: data.invoiceAddress.country || '',
+          nip: data.invoiceAddress.nip || '',
+        },
+      };
+
+      await reserveBooth(selectedBooth.id, safeData);
+      setModalOpen(false);
+      setSelectedBooth(null);
+    } catch (error) {
+      console.error("Reservation failed:", error);
     }
   };
 
@@ -85,12 +84,13 @@ export const ReservationPanel: React.FC = () => {
 
   const handleCancelReservation = (reservationId: string, boothId: string) => {
     if (window.confirm('Czy na pewno chcesz anulować tę rezerwację?')) {
-      alert('Funkcja anulowania rezerwacji zostanie zaimplementowana w backendzie');
+      alert('Funkcja anulowania rezerwacji w backendzie w przygotowaniu.');
     }
   };
 
+
   if (!user) {
-    return <div>Ładowanie...</div>;
+    return null; // szybki fallback, bo ProtectedRoute i tak wymusza logowanie
   }
 
   if (error) {
@@ -114,49 +114,40 @@ export const ReservationPanel: React.FC = () => {
     <main className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-md">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="text-xl font-bold text-[#830e21]">Panel Rezerwacji</div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-lg text-gray-700">Witaj, {user.name}</span>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-[#830e21] text-white rounded hover:bg-red-800 transition-colors"
-              >
-                Wyloguj
-              </button>
-            </div>
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="text-xl font-bold text-[#830e21]">
+            Panel Rezerwacji
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-lg text-gray-700">Witaj, {user.email}</span>
           </div>
         </div>
       </header>
 
       {/* Tabs */}
       <div className="bg-white border-b">
-        <div className="container mx-auto px-4">
-          <div className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('map')}
-              className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'map'
-                  ? 'border-[#830e21] text-[#830e21]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Mapa Stoisk
-            </button>
-            <button
-              onClick={() => setActiveTab('reservations')}
-              className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'reservations'
-                  ? 'border-[#830e21] text-[#830e21]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Moje Rezerwacje ({reservations.length})
-            </button>
-          </div>
+        <div className="container mx-auto px-4 flex space-x-8">
+          <button
+            onClick={() => setActiveTab('map')}
+            className={`py-4 px-2 border-b-2 font-medium text-sm ${
+              activeTab === 'map'
+                ? 'border-[#830e21] text-[#830e21]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Mapa Stoisk
+          </button>
+
+          <button
+            onClick={() => setActiveTab('reservations')}
+            className={`py-4 px-2 border-b-2 font-medium text-sm ${
+              activeTab === 'reservations'
+                ? 'border-[#830e21] text-[#830e21]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Moje Rezerwacje ({reservations.length})
+          </button>
         </div>
       </div>
 
@@ -177,6 +168,7 @@ export const ReservationPanel: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 Moje Rezerwacje
               </h2>
+
               {reservations.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-gray-400 text-lg mb-4">
@@ -193,6 +185,7 @@ export const ReservationPanel: React.FC = () => {
                 <div className="space-y-4">
                   {reservations.map((reservation) => {
                     const booth = booths.find((b) => b.id === reservation.boothId);
+
                     return (
                       <div
                         key={reservation.id}
@@ -210,6 +203,7 @@ export const ReservationPanel: React.FC = () => {
                               Łączna kwota: {reservation.totalAmount} zł
                             </p>
                           </div>
+
                           <div className="flex flex-col space-y-2">
                             <span
                               className={`px-3 py-1 rounded-full text-xs font-medium ${

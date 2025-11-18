@@ -1,4 +1,3 @@
-// src/pages/ContactPage.tsx
 import React from "react";
 
 export const ContactPage: React.FC = () => {
@@ -59,13 +58,13 @@ export const ContactPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="relative w-full pb-[56.25%] rounded-xl overflow-hidden shadow-lg">
           <iframe
-            title="Mapa lokalizacji"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1dXXXXXX!2dXXXXXX!3dXXXXXX!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xXXXXXXXXXXXXX%3A0xXXXXXXXXXXXXX!2sPolitechnika%20Bydgoska!5e0!3m2!1spl!2spl!4vXXXXXXXXXXXX"
-            className="w-full h-64 sm:h-80 rounded-lg border-0"
-            allowFullScreen
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2393.1578661766393!2d18.12818757697261!3d53.14326128989919!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x470313b103a9ea1d%3A0x2a29c87a5d2749d5!2sPolitechnika%20Bydgoska%20im.%20Jana%20i%20J%C4%99drzeja%20%C5%9Aniadeckich!5e0!3m2!1spl!2spl!4v1763081699489!5m2!1spl!2spl"
+            className="absolute inset-0 w-full h-full border-0"
             loading="lazy"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
           ></iframe>
         </div>
 
