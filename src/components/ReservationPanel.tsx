@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useBoothStore } from '../store/boothStore';
-import type { ReservationFormData } from '../types';
-import { ReservationModal } from './ReservationModal';
-import { InteractiveMap } from './InteractiveMap';
-import { getUserEmailFromToken, getToken, logout } from "../services/auth";
+import React, { useEffect, useState } from "react";
+import { useBoothStore } from "../store/boothStore";
+import type { ReservationFormData } from "../types";
+import { ReservationModal } from "./ReservationModal";
+import { InteractiveMap } from "./InteractiveMap";
+import { getUserEmailFromToken } from "../services/auth";
 
 export const ReservationPanel: React.FC = () => {
   const {
@@ -22,10 +22,11 @@ export const ReservationPanel: React.FC = () => {
   } = useBoothStore();
 
   const [user, setUser] = useState<{ email: string | null } | null>(null);
-  const [activeTab, setActiveTab] = useState<'map' | 'reservations'>('map');
+  const [activeTab, setActiveTab] = useState<"map" | "reservations">("map");
 
-  // ProtectedRoute gwarantuje, że token istnieje
-  // więc tutaj już tylko pobieramy email i dane z backendu
+  /* ----------------------------------
+     INIT
+  -----------------------------------*/
   useEffect(() => {
     const email = getUserEmailFromToken();
     setUser({ email });
@@ -34,16 +35,9 @@ export const ReservationPanel: React.FC = () => {
     fetchServices();
   }, [fetchBooths, fetchServices]);
 
-  const handleLogout = () => {
-    logout();
-    window.location.href = "/login";
-  };
-
-  const handleBoothClick = (booth: any) => {
-    setSelectedBooth(booth);
-    setModalOpen(true);
-  };
-
+  /* ----------------------------------
+     RESERVATION SUBMIT
+  -----------------------------------*/
   const handleReservationSubmit = async (data: ReservationFormData) => {
     if (!selectedBooth) return;
 
@@ -56,24 +50,24 @@ export const ReservationPanel: React.FC = () => {
         selectedBooth.price +
         selectedServices.reduce((sum, s) => sum + s.price, 0);
 
-      const safeData = {
+      const payload = {
         ...data,
         totalAmount,
         invoiceAddress: {
-          companyName: data.invoiceAddress.companyName || '',
-          street: data.invoiceAddress.street || '',
-          postalCode: data.invoiceAddress.postalCode || '',
-          city: data.invoiceAddress.city || '',
-          country: data.invoiceAddress.country || '',
-          nip: data.invoiceAddress.nip || '',
+          companyName: data.invoiceAddress.companyName || "",
+          street: data.invoiceAddress.street || "",
+          postalCode: data.invoiceAddress.postalCode || "",
+          city: data.invoiceAddress.city || "",
+          country: data.invoiceAddress.country || "",
+          nip: data.invoiceAddress.nip || "",
         },
       };
+      await reserveBooth(selectedBooth.id, payload);
 
-      await reserveBooth(selectedBooth.id, safeData);
       setModalOpen(false);
       setSelectedBooth(null);
-    } catch (error) {
-      console.error("Reservation failed:", error);
+    } catch (err) {
+      console.error("Reservation failed:", err);
     }
   };
 
@@ -82,68 +76,61 @@ export const ReservationPanel: React.FC = () => {
     setSelectedBooth(null);
   };
 
-  const handleCancelReservation = (reservationId: string, boothId: string) => {
-    if (window.confirm('Czy na pewno chcesz anulować tę rezerwację?')) {
-      alert('Funkcja anulowania rezerwacji w backendzie w przygotowaniu.');
-    }
+  const handleCancelReservation = () => {
+    alert("Funkcja anulowania rezerwacji w backendzie w przygotowaniu.");
   };
 
-
-  if (!user) {
-    return null; // szybki fallback, bo ProtectedRoute i tak wymusza logowanie
-  }
+  /* ----------------------------------
+     GUARDS
+  -----------------------------------*/
+  if (!user) return null;
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="text-red-600 text-lg mb-4">Błąd ładowania danych</div>
+          <p className="text-red-600 text-lg mb-4">Błąd ładowania danych</p>
           <p className="text-gray-600">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-[#830e21] text-white rounded hover:bg-red-800"
-          >
-            Spróbuj ponownie
-          </button>
         </div>
       </div>
     );
   }
 
+  /* ----------------------------------
+     RENDER
+  -----------------------------------*/
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-md">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="text-xl font-bold text-[#830e21]">
+      {/* HEADER */}
+      <header className="bg-white shadow">
+        <div className="container mx-auto px-4 py-4 flex justify-between">
+          <h1 className="text-xl font-bold text-[#830e21]">
             Panel Rezerwacji
-          </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-lg text-gray-700">Witaj, {user.email}</span>
-          </div>
+          </h1>
+          <span className="text-gray-700">Witaj, {user.email}</span>
         </div>
       </header>
 
-      {/* Tabs */}
+      {/* TABS */}
       <div className="bg-white border-b">
-        <div className="container mx-auto px-4 flex space-x-8">
+        <div className="container mx-auto px-4 flex gap-8">
           <button
-            onClick={() => setActiveTab('map')}
-            className={`py-4 px-2 border-b-2 font-medium text-sm ${
-              activeTab === 'map'
-                ? 'border-[#830e21] text-[#830e21]'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+            onClick={() => setActiveTab("map")}
+            className={`py-4 border-b-2 ${
+              activeTab === "map"
+                ? "border-[#830e21] text-[#830e21]"
+                : "border-transparent text-gray-500"
             }`}
           >
             Mapa Stoisk
           </button>
 
           <button
-            onClick={() => setActiveTab('reservations')}
-            className={`py-4 px-2 border-b-2 font-medium text-sm ${
-              activeTab === 'reservations'
-                ? 'border-[#830e21] text-[#830e21]'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+            onClick={() => setActiveTab("reservations")}
+            className={`py-4 border-b-2 ${
+              activeTab === "reservations"
+                ? "border-[#830e21] text-[#830e21]"
+                : "border-transparent text-gray-500"
             }`}
           >
             Moje Rezerwacje ({reservations.length})
@@ -151,81 +138,56 @@ export const ReservationPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Content */}
+      {/* CONTENT */}
       {!isLoading && (
         <div className="container mx-auto px-4 py-8">
-          {activeTab === 'map' && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Wybierz Stoisko do Rezerwacji
+          {activeTab === "map" && (
+            <div className="bg-white rounded-xl shadow p-6">
+              <h2 className="text-2xl font-bold mb-6">
+                Wybierz Stoisko
               </h2>
-              <InteractiveMap onBoothClick={handleBoothClick} />
+              <InteractiveMap />
             </div>
           )}
 
-          {activeTab === 'reservations' && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          {activeTab === "reservations" && (
+            <div className="bg-white rounded-xl shadow p-6">
+              <h2 className="text-2xl font-bold mb-6">
                 Moje Rezerwacje
               </h2>
 
               {reservations.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-400 text-lg mb-4">
-                    Nie masz jeszcze żadnych rezerwacji
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('map')}
-                    className="px-6 py-2 bg-[#830e21] text-white rounded-lg hover:bg-red-800 transition-colors"
-                  >
-                    Zarezerwuj Stoisko
-                  </button>
-                </div>
+                <p className="text-gray-400">
+                  Brak rezerwacji
+                </p>
               ) : (
                 <div className="space-y-4">
-                  {reservations.map((reservation) => {
-                    const booth = booths.find((b) => b.id === reservation.boothId);
-
+                  {reservations.map((r) => {
+                    const booth = booths.find(
+                      (b) => b.id === r.boothId
+                    );
                     return (
                       <div
-                        key={reservation.id}
-                        className="border rounded-lg p-6 hover:shadow-md transition-shadow"
+                        key={r.id}
+                        className="border rounded p-4 flex justify-between"
                       >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              Stoisko {booth?.number}
-                            </h3>
-                            <p className="text-gray-600">{reservation.companyName}</p>
-                            <p className="text-gray-600">{reservation.contactEmail}</p>
-                            <p className="text-gray-600">{reservation.contactPhone}</p>
-                            <p className="mt-3 text-lg font-bold text-[#830e21]">
-                              Łączna kwota: {reservation.totalAmount} zł
-                            </p>
-                          </div>
-
-                          <div className="flex flex-col space-y-2">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                booth?.status === 'reserved'
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-green-100 text-green-800'
-                              }`}
-                            >
-                              {booth?.status === 'reserved'
-                                ? 'Zarezerwowane'
-                                : 'Potwierdzone'}
-                            </span>
-                            <button
-                              onClick={() =>
-                                handleCancelReservation(reservation.id, reservation.boothId)
-                              }
-                              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm"
-                            >
-                              Anuluj
-                            </button>
-                          </div>
+                        <div>
+                          <h3 className="font-semibold">
+                            Stoisko {booth?.number}
+                          </h3>
+                          <p>{r.companyName}</p>
+                          <p>{r.contactEmail}</p>
+                          <p className="font-bold text-[#830e21]">
+                            {r.totalAmount} zł
+                          </p>
                         </div>
+
+                        <button
+                          onClick={handleCancelReservation}
+                          className="px-4 py-2 bg-red-600 text-white rounded"
+                        >
+                          Anuluj
+                        </button>
                       </div>
                     );
                   })}
@@ -236,7 +198,7 @@ export const ReservationPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Reservation Modal */}
+      {/* MODAL */}
       {isModalOpen && selectedBooth && (
         <ReservationModal
           booth={selectedBooth}

@@ -6,6 +6,7 @@ interface BoothStore {
   booths: Booth[];
   services: Service[];
   reservations: Reservation[];
+
   selectedBooth: Booth | null;
   isModalOpen: boolean;
   isLoading: boolean;
@@ -13,16 +14,16 @@ interface BoothStore {
 
   fetchBooths: () => Promise<void>;
   fetchServices: () => Promise<void>;
+
   setSelectedBooth: (booth: Booth | null) => void;
   setModalOpen: (open: boolean) => void;
+
   reserveBooth: (
-    boothId: string,
+    boothId: string, // ⬅️ ID Z BAZY
     reservationData: Omit<Reservation, "id" | "createdAt" | "boothId">
   ) => Promise<void>;
-  getBoothById: (id: string) => Booth | undefined;
-  getReservationByBoothId: (boothId: string) => Reservation | undefined;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
+
+  getBoothByNumber: (boothNumber: string) => Booth | undefined;
 }
 
 export const useBoothStore = create<BoothStore>((set, get) => ({
@@ -34,53 +35,49 @@ export const useBoothStore = create<BoothStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchBooths: async () => {
+  async fetchBooths() {
     set({ isLoading: true, error: null });
-
     try {
       const res = await api.get("/booths");
 
-      const transformed = res.data.map((booth: any) => ({
-        id: booth.id.toString(),
-        number: booth.boothNumber,
-        x: booth.x,
-        y: booth.y,
-        width: booth.width,
-        height: booth.height,
-        price: booth.price,
-        size: booth.size === "2x1" ? "2x1" : "1x1",
-        status: booth.status.toLowerCase(),
-        company: booth.company || undefined,
+      const booths: Booth[] = res.data.map((b: any) => ({
+        id: String(b.id),
+        number: String(b.boothNumber),
+        x: b.x,
+        y: b.y,
+        width: b.width,
+        height: b.height,
+        price: b.price,
+        size: b.size === "2x1" ? "2x1" : "1x1",
+        status: b.status.toLowerCase(),
+        company: b.company ?? undefined,
       }));
 
-      set({ booths: transformed, isLoading: false });
-
-    } catch (err: any) {
-      console.error("Błąd pobierania booths:", err);
-      set({ error: err?.message, isLoading: false });
+      set({ booths, isLoading: false });
+    } catch (e: any) {
+      set({ error: e.message ?? "Błąd stoisk", isLoading: false });
     }
   },
 
-  fetchServices: async () => {
+  async fetchServices() {
     set({ isLoading: true, error: null });
-
     try {
       const res = await api.get("/services");
-
-      const transformed = res.data.map((s: any) => ({
-        id: s.serviceCode,
+      const services: Service[] = res.data.map((s: any) => ({
+        id: String(s.serviceCode),
         name: s.name,
         description: s.description,
         price: s.price,
         vat: s.vat,
       }));
-
-      set({ services: transformed, isLoading: false });
-
-    } catch (err: any) {
-      console.error("Błąd pobierania services:", err);
-      set({ error: err?.message, isLoading: false });
+      set({ services, isLoading: false });
+    } catch (e: any) {
+      set({ error: e.message ?? "Błąd usług", isLoading: false });
     }
+  },
+
+  getBoothByNumber(boothNumber) {
+    return get().booths.find((b) => b.number === boothNumber);
   },
 
   setSelectedBooth: (booth) => set({ selectedBooth: booth }),
@@ -91,31 +88,24 @@ export const useBoothStore = create<BoothStore>((set, get) => ({
 
     try {
       const res = await api.post("/reservations", {
-        boothId: parseInt(boothId),
+        boothId: Number(boothId),
         ...reservationData,
       });
 
       set((state) => ({
         reservations: [...state.reservations, res.data],
+
         booths: state.booths.map((b) =>
           b.id === boothId
             ? { ...b, status: "reserved", company: reservationData.companyName }
             : b
         ),
+
         isLoading: false,
       }));
-
     } catch (err: any) {
-      console.error("Błąd rezerwacji:", err);
-      set({ error: err?.message, isLoading: false });
+      set({ error: err?.message ?? "Błąd rezerwacji", isLoading: false });
       throw err;
     }
   },
-
-  getBoothById: (id) => get().booths.find((b) => b.id === id),
-  getReservationByBoothId: (boothId) =>
-    get().reservations.find((r) => r.boothId === boothId),
-
-  setLoading: (loading) => set({ isLoading: loading }),
-  setError: (error) => set({ error }),
 }));

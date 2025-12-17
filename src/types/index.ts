@@ -1,12 +1,12 @@
 export interface Booth {
-  id: string;
-  number: string;
+  id: string;            // ID z bazy
+  number: string;        // NUMER STOISKA (mapa, SVG, backend)
   x: number;
   y: number;
   width: number;
   height: number;
   price: number;
-  size: '1x1' | '2x1'; // Dostępne rozmiary stoisk
+  size: '1x1' | '2x1';
   status: 'available' | 'reserved' | 'occupied';
   company?: string;
 }

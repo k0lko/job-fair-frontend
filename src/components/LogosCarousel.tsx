@@ -1,7 +1,7 @@
 import React from "react";
 
 export const LogosCarousel: React.FC = () => {
-  const logoModules = import.meta.glob("/public/logos/*.{png,jpg,jpeg,svg}", {
+  const logoModules = import.meta.glob("/src/logos/*.{png,jpg,jpeg,svg}", {
     eager: true,
   });
 
