@@ -76,8 +76,8 @@ export const useBoothStore = create<BoothStore>((set, get) => ({
     }
   },
 
-  getBoothByNumber(boothNumber) {
-    return get().booths.find((b) => b.number === boothNumber);
+  getBoothByNumber(number) {
+    return get().booths.find((b) => b.number === number);
   },
 
   setSelectedBooth: (booth) => set({ selectedBooth: booth }),

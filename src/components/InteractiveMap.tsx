@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useBoothStore } from "../store/boothStore";
-import MapSvg from "../assets/Mapa.svg?raw";
+import MapSvg from "../assets/mapa.svg?raw";
 
 export const InteractiveMap = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -15,29 +15,34 @@ export const InteractiveMap = () => {
       'g[id^="booth-"]'
     );
 
+    const controller = new AbortController();
+    const { signal } = controller;
+
     booths.forEach((el) => {
       el.style.cursor = "pointer";
 
-      el.addEventListener("click", () => {
-        const rawId = el.id.replace("booth-", ""); // "78"
-        const boothNumber = String(rawId);          // ✅ STRING
+      el.addEventListener(
+        "click",
+        () => {
+          const rawId = el.id.replace("booth-", ""); // "78"
+          const boothNumber = String(rawId);          // ✅ STRING
 
-        const booth = getBoothByNumber(boothNumber);
+          const booth = getBoothByNumber(boothNumber);
 
-        if (!booth) {
-          console.warn("Nie znaleziono stoiska:", boothNumber);
-          return;
-        }
+          if (!booth) {
+            console.warn("Nie znaleziono stoiska:", boothNumber);
+            return;
+          }
 
-        setSelectedBooth(booth);
-        setModalOpen(true);
-      });
+          setSelectedBooth(booth);
+          setModalOpen(true);
+        },
+        { signal }
+      );
     });
 
     return () => {
-      booths.forEach((el) => {
-        el.replaceWith(el.cloneNode(true));
-      });
+      controller.abort();
     };
   }, [getBoothByNumber, setSelectedBooth, setModalOpen]);
 
